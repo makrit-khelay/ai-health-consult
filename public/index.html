@@ -1,351 +1,968 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Health Consult</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            background-color: #121212;
-            color: #e0e0e0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex;
-            height: 100vh;
-            overflow: hidden;
-        }
-        .left-panel {
-            width: 280px;
-            flex-shrink: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            border-right: 1px solid #2a2a2a;
-            padding: 16px 10px;
-            gap: 10px;
-            overflow-y: auto;
-        }
-        .left-panel h2 { font-size: 14px; font-weight: 500; color: #888; }
-        .body-svg { width: 160px; cursor: default; }
-        .bp {
-            fill: #2a2a2a;
-            stroke: #555;
-            stroke-width: 1;
-            cursor: pointer;
-            transition: fill 0.2s, stroke 0.2s;
-        }
-        .bp:hover { fill: #1a4a7a; stroke: #378ADD; }
-        .bp.sel { fill: #378ADD; stroke: #85B7EB; }
-        .bp-label {
-            font-size: 9px;
-            fill: #888;
-            pointer-events: none;
-            text-anchor: middle;
-            font-family: 'Segoe UI', sans-serif;
-        }
-        #status {
-            font-size: 12px;
-            color: #666;
-            text-align: center;
-        }
-        .divider { width: 100%; height: 1px; background: #2a2a2a; }
-        .freetext-area { width: 100%; padding: 0 4px; }
-        .freetext-area label { font-size: 11px; color: #888; display: block; margin-bottom: 5px; }
-        .freetext-area textarea {
-            width: 100%;
-            height: 68px;
-            font-size: 12px;
-            resize: none;
-            border-radius: 8px;
-            border: 1px solid #333;
-            background: #1e1e1e;
-            color: #e0e0e0;
-            padding: 7px 10px;
-            font-family: inherit;
-            outline: none;
-        }
-        .freetext-area textarea:focus { border-color: #378ADD; }
-        .freetext-area button {
-            margin-top: 6px;
-            width: 100%;
-            padding: 8px;
-            font-size: 12px;
-            font-weight: 500;
-            background: #1a3a5c;
-            color: #85B7EB;
-            border: 1px solid #378ADD;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .freetext-area button:hover { background: #1e4a72; }
-        .right-panel {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            padding: 16px;
-            background: #161616;
-        }
-        .right-panel h2 { font-size: 14px; font-weight: 500; color: #888; margin-bottom: 10px; }
-        #chat-box {
-            flex: 1;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-bottom: 12px;
-            padding-right: 4px;
-        }
-        #chat-box::-webkit-scrollbar { width: 4px; }
-        #chat-box::-webkit-scrollbar-track { background: transparent; }
-        #chat-box::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
-        .message {
-            padding: 10px 14px;
-            border-radius: 14px;
-            max-width: 85%;
-            line-height: 1.55;
-            font-size: 13.5px;
-        }
-        .bot-msg {
-            background: #222;
-            color: #ddd;
-            align-self: flex-start;
-            border-radius: 4px 14px 14px 14px;
-        }
-        .user-msg {
-            background: #185FA5;
-            color: #fff;
-            align-self: flex-end;
-            border-radius: 14px 4px 14px 14px;
-        }
-        .err-msg {
-            background: #3a1a1a;
-            color: #f88;
-            align-self: flex-start;
-            border-radius: 4px 14px 14px 14px;
-            font-size: 12px;
-        }
-        .input-area { display: flex; gap: 8px; }
-        .input-area input {
-            flex: 1;
-            padding: 11px 14px;
-            border-radius: 8px;
-            border: 1px solid #333;
-            background: #1e1e1e;
-            color: #e0e0e0;
-            font-size: 13px;
-            font-family: inherit;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-        .input-area input:focus { border-color: #378ADD; }
-        .input-area input:disabled { opacity: 0.4; }
-        .input-area button {
-            padding: 11px 18px;
-            background: #185FA5;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 500;
-            transition: background 0.2s;
-        }
-        .input-area button:hover { background: #1a6fc0; }
-        .input-area button:disabled { opacity: 0.4; cursor: not-allowed; }
-        .thinking { opacity: 0.5; font-style: italic; }
-    </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MediSense AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg: #080c14;
+  --surface: #0d1420;
+  --surface2: #111927;
+  --border: rgba(99,179,255,0.12);
+  --accent: #3b9eff;
+  --accent2: #00e5c0;
+  --accent3: #ff5f7e;
+  --text: #e8f0ff;
+  --muted: #6a7d9f;
+  --card: rgba(255,255,255,0.03);
+  --glow: rgba(59,158,255,0.18);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;}
+
+/* ── SCREENS ── */
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;transition:opacity .5s,transform .5s;will-change:transform,opacity;}
+.screen.hidden{opacity:0;pointer-events:none;transform:translateY(24px);}
+
+/* ══════════ LANDING ══════════ */
+#landing{align-items:center;justify-content:flex-start;overflow-y:auto;padding:0 0 48px;}
+
+.landing-hero{
+  width:100%;padding:56px 40px 36px;
+  display:flex;flex-direction:column;align-items:center;
+  background:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(59,158,255,.18) 0%,transparent 70%);
+  position:relative;
+}
+.landing-hero::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--accent),var(--accent2),transparent);
+}
+.logo-badge{
+  display:flex;align-items:center;gap:10px;
+  background:rgba(59,158,255,.08);border:1px solid rgba(59,158,255,.2);
+  padding:6px 14px 6px 8px;border-radius:100px;margin-bottom:28px;
+}
+.logo-badge svg{width:22px;height:22px;}
+.logo-badge span{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;letter-spacing:.06em;color:var(--accent);}
+.hero-title{
+  font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(36px,6vw,64px);
+  text-align:center;line-height:1.08;letter-spacing:-.02em;margin-bottom:16px;
+}
+.hero-title .hl{
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.hero-sub{font-size:15px;color:var(--muted);text-align:center;max-width:480px;line-height:1.65;margin-bottom:40px;}
+
+.entry-cards{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;width:100%;padding:0 24px;max-width:900px;}
+.entry-card{
+  flex:1;min-width:260px;max-width:380px;
+  background:var(--card);border:1px solid var(--border);border-radius:20px;
+  padding:28px 24px;cursor:pointer;transition:all .25s;
+  position:relative;overflow:hidden;
+}
+.entry-card::before{
+  content:'';position:absolute;inset:0;opacity:0;transition:opacity .3s;
+  background:radial-gradient(circle at 50% 0%,var(--glow),transparent 70%);
+}
+.entry-card:hover{border-color:rgba(59,158,255,.4);transform:translateY(-3px);}
+.entry-card:hover::before{opacity:1;}
+.entry-card .card-icon{font-size:32px;margin-bottom:14px;display:block;}
+.entry-card h3{font-family:'Syne',sans-serif;font-weight:700;font-size:18px;margin-bottom:8px;}
+.entry-card p{font-size:13px;color:var(--muted);line-height:1.6;}
+.entry-card .card-arrow{
+  display:inline-flex;align-items:center;gap:6px;
+  margin-top:18px;font-size:12px;font-weight:500;color:var(--accent);letter-spacing:.04em;
+}
+
+/* ══════════ BODY SELECTOR ══════════ */
+#selector{align-items:center;justify-content:center;padding:0 16px;}
+.selector-inner{
+  width:100%;max-width:860px;display:flex;flex-direction:column;align-items:center;gap:24px;
+}
+.sel-header{text-align:center;}
+.sel-header h2{font-family:'Syne',sans-serif;font-weight:800;font-size:28px;margin-bottom:8px;}
+.sel-header p{font-size:13px;color:var(--muted);}
+.sel-hint{
+  font-size:11px;color:var(--muted);background:rgba(59,158,255,.06);
+  border:1px solid var(--border);border-radius:100px;padding:5px 14px;
+}
+.body-diagrams{display:flex;gap:40px;align-items:flex-start;justify-content:center;flex-wrap:wrap;}
+.diagram-wrap{display:flex;flex-direction:column;align-items:center;gap:8px;}
+.diagram-wrap label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
+
+/* SVG body parts */
+.bp{
+  fill:rgba(59,158,255,.07);stroke:rgba(99,179,255,.25);stroke-width:1.2;
+  cursor:pointer;transition:fill .2s,stroke .2s,filter .2s;
+}
+.bp:hover{fill:rgba(59,158,255,.25);stroke:var(--accent);filter:drop-shadow(0 0 6px rgba(59,158,255,.4));}
+.bp.sel{fill:rgba(59,158,255,.45);stroke:var(--accent2);filter:drop-shadow(0 0 10px rgba(0,229,192,.5));}
+.bp-lbl{font-size:7.5px;fill:var(--muted);pointer-events:none;text-anchor:middle;font-family:'DM Sans',sans-serif;}
+
+.sel-status{
+  font-size:13px;color:var(--accent2);font-weight:500;
+  background:rgba(0,229,192,.07);border:1px solid rgba(0,229,192,.2);
+  padding:6px 18px;border-radius:100px;min-height:32px;text-align:center;
+}
+.sel-back-btn{
+  font-size:12px;color:var(--muted);background:none;border:1px solid var(--border);
+  padding:7px 16px;border-radius:100px;cursor:pointer;transition:all .2s;font-family:inherit;
+}
+.sel-back-btn:hover{color:var(--text);border-color:var(--muted);}
+
+/* ══════════ FREETEXT ══════════ */
+#freetext{align-items:center;justify-content:center;padding:24px;}
+.ft-card{
+  width:100%;max-width:560px;
+  background:var(--surface);border:1px solid var(--border);border-radius:24px;
+  padding:36px 36px 32px;display:flex;flex-direction:column;gap:20px;
+}
+.ft-card h2{font-family:'Syne',sans-serif;font-weight:800;font-size:26px;}
+.ft-card p{font-size:13px;color:var(--muted);line-height:1.65;}
+.ft-card textarea{
+  width:100%;height:120px;resize:none;
+  background:var(--bg);border:1px solid var(--border);border-radius:14px;
+  color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;
+  padding:14px 16px;outline:none;transition:border-color .2s;line-height:1.6;
+}
+.ft-card textarea:focus{border-color:var(--accent);}
+.ft-card textarea::placeholder{color:var(--muted);}
+.btn-primary{
+  padding:13px 24px;border:none;border-radius:12px;cursor:pointer;font-family:'Syne',sans-serif;
+  font-weight:700;font-size:14px;letter-spacing:.02em;transition:all .2s;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));color:#080c14;
+}
+.btn-primary:hover{opacity:.88;transform:translateY(-1px);}
+.btn-primary:disabled{opacity:.35;cursor:not-allowed;transform:none;}
+.ft-back{background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;font-family:inherit;padding:4px;}
+.ft-back:hover{color:var(--text);}
+
+/* ══════════ MCQ FLOW ══════════ */
+#mcq{align-items:center;justify-content:center;padding:24px;overflow-y:auto;}
+.mcq-wrap{width:100%;max-width:600px;display:flex;flex-direction:column;gap:20px;}
+.mcq-progress{display:flex;align-items:center;gap:12px;}
+.mcq-progress-bar{flex:1;height:3px;background:var(--border);border-radius:100px;overflow:hidden;}
+.mcq-progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:100px;transition:width .4s;}
+.mcq-progress-label{font-size:11px;color:var(--muted);white-space:nowrap;}
+
+.mcq-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:24px;
+  padding:32px 28px;display:flex;flex-direction:column;gap:18px;
+}
+.mcq-body-ctx{
+  display:flex;align-items:center;gap:10px;
+  font-size:12px;color:var(--accent2);background:rgba(0,229,192,.07);
+  border:1px solid rgba(0,229,192,.15);border-radius:100px;padding:5px 14px;width:fit-content;
+}
+.mcq-q{font-family:'Syne',sans-serif;font-weight:700;font-size:20px;line-height:1.35;}
+.mcq-options{display:flex;flex-direction:column;gap:10px;}
+.mcq-opt{
+  background:var(--card);border:1px solid var(--border);border-radius:14px;
+  padding:14px 18px;cursor:pointer;font-size:14px;color:var(--text);
+  transition:all .2s;text-align:left;font-family:'DM Sans',sans-serif;
+  display:flex;align-items:center;gap:12px;
+}
+.mcq-opt:hover{border-color:var(--accent);background:rgba(59,158,255,.08);}
+.mcq-opt.selected{border-color:var(--accent2);background:rgba(0,229,192,.1);color:var(--accent2);}
+.mcq-opt .opt-num{
+  width:24px;height:24px;border-radius:50%;border:1px solid currentColor;
+  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;
+}
+.mcq-write{
+  background:rgba(255,95,126,.06);border:1px dashed rgba(255,95,126,.3);border-radius:14px;
+  padding:14px 18px;cursor:pointer;font-size:13px;color:var(--accent3);
+  transition:all .2s;text-align:left;font-family:'DM Sans',sans-serif;
+  display:flex;align-items:center;gap:10px;
+}
+.mcq-write:hover{background:rgba(255,95,126,.12);border-color:var(--accent3);}
+.mcq-write-area{display:none;flex-direction:column;gap:10px;}
+.mcq-write-area.open{display:flex;}
+.mcq-write-area input{
+  background:var(--bg);border:1px solid var(--border);border-radius:10px;
+  color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;
+  padding:12px 14px;outline:none;transition:border-color .2s;
+}
+.mcq-write-area input:focus{border-color:var(--accent3);}
+
+/* Severity slider */
+.severity-wrap{display:flex;flex-direction:column;gap:10px;}
+.severity-wrap label{font-size:13px;color:var(--muted);}
+.severity-row{display:flex;align-items:center;gap:14px;}
+.severity-slider{flex:1;-webkit-appearance:none;height:6px;border-radius:100px;outline:none;cursor:pointer;}
+.severity-slider::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--accent);cursor:pointer;border:2px solid var(--bg);}
+.severity-val{
+  font-family:'Syne',sans-serif;font-weight:800;font-size:20px;width:32px;text-align:center;
+}
+.sev-1{color:#00e5c0;} .sev-2{color:#3b9eff;} .sev-3{color:#ff9900;} .sev-4{color:#ff5f7e;}
+
+.mcq-next-btn{
+  padding:13px;border:none;border-radius:12px;cursor:pointer;font-family:'Syne',sans-serif;
+  font-weight:700;font-size:14px;transition:all .2s;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));color:#080c14;
+}
+.mcq-next-btn:hover{opacity:.88;}
+.mcq-next-btn:disabled{opacity:.3;cursor:not-allowed;}
+
+/* ══════════ EMERGENCY BANNER ══════════ */
+.emergency-banner{
+  position:fixed;top:0;left:0;right:0;z-index:999;
+  background:linear-gradient(90deg,#7a0000,#c0002a,#7a0000);
+  padding:14px 24px;display:flex;align-items:center;justify-content:center;gap:12px;
+  font-size:14px;font-weight:500;letter-spacing:.02em;
+  animation:pulse-banner 2s ease-in-out infinite;
+  transform:translateY(-100%);transition:transform .4s;
+}
+.emergency-banner.show{transform:translateY(0);}
+.emergency-banner button{
+  background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);
+  color:#fff;padding:4px 12px;border-radius:100px;cursor:pointer;font-size:12px;font-family:inherit;
+}
+@keyframes pulse-banner{0%,100%{opacity:1;}50%{opacity:.8;}}
+
+/* ══════════ CHAT ══════════ */
+#chat{flex-direction:row;overflow:hidden;}
+.chat-sidebar{
+  width:280px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;padding:20px 16px;gap:16px;overflow-y:auto;
+}
+.chat-sidebar-header{display:flex;flex-direction:column;gap:4px;}
+.chat-sidebar-header h3{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;}
+.chat-sidebar-header span{font-size:12px;color:var(--muted);}
+.sidebar-divider{height:1px;background:var(--border);}
+.sidebar-info-row{display:flex;flex-direction:column;gap:4px;}
+.sidebar-info-row label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+.sidebar-info-row p{font-size:13px;line-height:1.5;}
+
+.severity-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:5px 12px;border-radius:100px;font-size:12px;font-weight:600;
+  border:1px solid var(--border);background:var(--card);
+}
+
+.new-consult-btn{
+  margin-top:auto;padding:11px;border:1px solid var(--border);border-radius:12px;
+  background:none;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;
+  font-size:13px;transition:all .2s;
+}
+.new-consult-btn:hover{color:var(--text);border-color:var(--accent);}
+
+.export-btn{
+  padding:11px;border:1px solid rgba(0,229,192,.25);border-radius:12px;
+  background:rgba(0,229,192,.06);color:var(--accent2);cursor:pointer;font-family:'DM Sans',sans-serif;
+  font-size:13px;font-weight:500;transition:all .2s;
+}
+.export-btn:hover{background:rgba(0,229,192,.12);}
+
+.chat-main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.chat-topbar{
+  padding:16px 24px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:12px;
+  background:linear-gradient(180deg,var(--surface) 0%,transparent 100%);
+}
+.chat-topbar h2{font-family:'Syne',sans-serif;font-weight:700;font-size:17px;flex:1;}
+.chat-topbar .ai-badge{
+  font-size:11px;background:rgba(59,158,255,.1);border:1px solid rgba(59,158,255,.25);
+  color:var(--accent);padding:4px 10px;border-radius:100px;
+}
+#chat-box{
+  flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:14px;
+}
+#chat-box::-webkit-scrollbar{width:3px;}
+#chat-box::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+.msg{max-width:78%;line-height:1.65;font-size:14px;padding:14px 18px;border-radius:18px;animation:msg-in .3s ease;}
+@keyframes msg-in{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.bot-msg{background:var(--surface2);color:var(--text);align-self:flex-start;border-radius:4px 18px 18px 18px;}
+.user-msg{background:linear-gradient(135deg,#1a4a8a,#185FA5);color:#fff;align-self:flex-end;border-radius:18px 4px 18px 18px;}
+.err-msg{background:rgba(255,95,126,.1);color:var(--accent3);align-self:flex-start;font-size:13px;border-radius:4px 18px 18px 18px;border:1px solid rgba(255,95,126,.2);}
+.thinking-msg{opacity:.5;font-style:italic;font-size:13px;}
+
+.chat-input-wrap{
+  padding:16px 24px;border-top:1px solid var(--border);
+  display:flex;gap:10px;background:var(--surface);
+}
+.chat-input-wrap input{
+  flex:1;background:var(--bg);border:1px solid var(--border);border-radius:12px;
+  color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;
+  padding:13px 16px;outline:none;transition:border-color .2s;
+}
+.chat-input-wrap input:focus{border-color:var(--accent);}
+.chat-input-wrap input::placeholder{color:var(--muted);}
+.chat-input-wrap input:disabled{opacity:.4;}
+.chat-send-btn{
+  padding:13px 22px;border:none;border-radius:12px;cursor:pointer;font-family:'Syne',sans-serif;
+  font-weight:700;font-size:14px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#080c14;transition:all .2s;
+}
+.chat-send-btn:hover{opacity:.88;}
+.chat-send-btn:disabled{opacity:.35;cursor:not-allowed;}
+
+/* ── util ── */
+.hidden{display:none!important;}
+</style>
 </head>
 <body>
 
-<div class="left-panel">
-    <h2>Select pain area</h2>
-
-    <svg class="body-svg" viewBox="0 0 160 340">
-        <!-- Head -->
-        <ellipse id="bp-head" class="bp" cx="80" cy="22" rx="20" ry="22" data-part="Head"/>
-        <text class="bp-label" x="80" y="26">Head</text>
-
-        <!-- Neck -->
-        <rect id="bp-neck" class="bp" x="70" y="44" width="20" height="14" rx="3" data-part="Neck"/>
-        <text class="bp-label" x="80" y="54">Neck</text>
-
-        <!-- Left shoulder -->
-        <ellipse id="bp-lshoulder" class="bp" cx="42" cy="66" rx="14" ry="10" data-part="Left shoulder"/>
-        <text class="bp-label" x="42" y="70">L</text>
-
-        <!-- Right shoulder -->
-        <ellipse id="bp-rshoulder" class="bp" cx="118" cy="66" rx="14" ry="10" data-part="Right shoulder"/>
-        <text class="bp-label" x="118" y="70">R</text>
-
-        <!-- Chest -->
-        <rect id="bp-chest" class="bp" x="56" y="58" width="48" height="30" rx="4" data-part="Chest"/>
-        <text class="bp-label" x="80" y="76">Chest</text>
-
-        <!-- Abdomen -->
-        <rect id="bp-abdomen" class="bp" x="56" y="90" width="48" height="28" rx="4" data-part="Abdomen"/>
-        <text class="bp-label" x="80" y="107">Abdomen</text>
-
-        <!-- Lower abdomen -->
-        <rect id="bp-pelvis" class="bp" x="56" y="120" width="48" height="22" rx="4" data-part="Lower abdomen"/>
-        <text class="bp-label" x="80" y="134">Lower abd.</text>
-
-        <!-- Left upper arm -->
-        <rect id="bp-luarm" class="bp" x="24" y="76" width="16" height="40" rx="6" data-part="Left upper arm"/>
-
-        <!-- Right upper arm -->
-        <rect id="bp-ruarm" class="bp" x="120" y="76" width="16" height="40" rx="6" data-part="Right upper arm"/>
-
-        <!-- Left elbow -->
-        <ellipse id="bp-lelbow" class="bp" cx="32" cy="120" rx="10" ry="7" data-part="Left elbow"/>
-
-        <!-- Right elbow -->
-        <ellipse id="bp-relbow" class="bp" cx="128" cy="120" rx="10" ry="7" data-part="Right elbow"/>
-
-        <!-- Left forearm -->
-        <rect id="bp-lfarm" class="bp" x="24" y="128" width="16" height="34" rx="6" data-part="Left forearm"/>
-
-        <!-- Right forearm -->
-        <rect id="bp-rfarm" class="bp" x="120" y="128" width="16" height="34" rx="6" data-part="Right forearm"/>
-
-        <!-- Left wrist/hand -->
-        <ellipse id="bp-lhand" class="bp" cx="32" cy="170" rx="11" ry="8" data-part="Left wrist/hand"/>
-        <text class="bp-label" x="10" y="173" style="text-anchor:start; font-size:8px;">Wrist</text>
-
-        <!-- Right wrist/hand -->
-        <ellipse id="bp-rhand" class="bp" cx="128" cy="170" rx="11" ry="8" data-part="Right wrist/hand"/>
-        <text class="bp-label" x="141" y="173" style="text-anchor:start; font-size:8px;">Wrist</text>
-
-        <!-- Left thigh -->
-        <rect id="bp-lhip" class="bp" x="54" y="144" width="22" height="44" rx="6" data-part="Left hip/thigh"/>
-
-        <!-- Right thigh -->
-        <rect id="bp-rhip" class="bp" x="84" y="144" width="22" height="44" rx="6" data-part="Right hip/thigh"/>
-
-        <!-- Left knee -->
-        <ellipse id="bp-lknee" class="bp" cx="65" cy="193" rx="12" ry="8" data-part="Left knee"/>
-
-        <!-- Right knee -->
-        <ellipse id="bp-rknee" class="bp" cx="95" cy="193" rx="12" ry="8" data-part="Right knee"/>
-
-        <!-- Left lower leg -->
-        <rect id="bp-lleg" class="bp" x="55" y="203" width="20" height="48" rx="6" data-part="Left lower leg"/>
-
-        <!-- Right lower leg -->
-        <rect id="bp-rleg" class="bp" x="85" y="203" width="20" height="48" rx="6" data-part="Right lower leg"/>
-
-        <!-- Left ankle/foot -->
-        <ellipse id="bp-lankle" class="bp" cx="65" cy="257" rx="13" ry="8" data-part="Left ankle/foot"/>
-
-        <!-- Right ankle/foot -->
-        <ellipse id="bp-rankle" class="bp" cx="95" cy="257" rx="13" ry="8" data-part="Right ankle/foot"/>
-    </svg>
-
-    <p id="status">Tap a body part to begin</p>
-    <div class="divider"></div>
-
-    <div class="freetext-area">
-        <label>Or describe symptoms directly</label>
-        <textarea id="free-desc" placeholder="e.g. I have a fever of 101°F, chills and fatigue since yesterday..."></textarea>
-        <button onclick="sendFreeText()">Describe symptoms ↗</button>
-    </div>
+<!-- EMERGENCY BANNER -->
+<div class="emergency-banner" id="emergency-banner">
+  🚨 <strong>EMERGENCY WARNING:</strong> Your symptoms may be serious. Please call emergency services or go to the ER immediately.
+  <button onclick="dismissEmergency()">Dismiss</button>
 </div>
 
-<div class="right-panel">
-    <h2>AI Consultation</h2>
-    <div id="chat-box">
-        <div class="message bot-msg">Hello! Tap a body part on the diagram, or describe your symptoms directly in the box on the left.</div>
+<!-- ═══════════════════════════ LANDING ═══════════════════════════ -->
+<div class="screen" id="landing">
+  <div class="landing-hero">
+    <div class="logo-badge">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent)"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      <span>MEDISENSE AI</span>
     </div>
-    <div class="input-area">
-        <input type="text" id="user-input" placeholder="Describe how it feels..." disabled/>
-        <button id="send-btn" disabled>Send</button>
+    <h1 class="hero-title">Your intelligent<br/><span class="hl">health companion</span></h1>
+    <p class="hero-sub">Describe your symptoms, select a body area, and get AI-powered guidance — all in minutes. Not a substitute for professional care.</p>
+  </div>
+
+  <div class="entry-cards" style="margin-top:32px;">
+    <div class="entry-card" onclick="goToSelector()">
+      <span class="card-icon">🫀</span>
+      <h3>Select Body Area</h3>
+      <p>Tap on an interactive body diagram — front or back — to pinpoint where you feel pain or discomfort.</p>
+      <div class="card-arrow">Get started →</div>
     </div>
+    <div class="entry-card" onclick="goToFreeText()">
+      <span class="card-icon">✍️</span>
+      <h3>Describe Symptoms</h3>
+      <p>Prefer to write it out? Just type what you're feeling — fever, fatigue, nausea, anything at all.</p>
+      <div class="card-arrow">Start typing →</div>
+    </div>
+  </div>
+
+  <p style="margin-top:32px;font-size:11px;color:var(--muted);text-align:center;padding:0 24px;">
+    ⚕️ For educational & informational purposes only. Always consult a licensed physician for medical decisions.
+  </p>
+</div>
+
+<!-- ═══════════════════════════ BODY SELECTOR ═══════════════════════════ -->
+<div class="screen hidden" id="selector">
+  <div class="selector-inner">
+    <div class="sel-header">
+      <h2>Where does it hurt?</h2>
+      <p style="font-size:13px;color:var(--muted);">Tap any body part on the front or back diagram</p>
+    </div>
+
+    <div class="body-diagrams">
+      <!-- FRONT -->
+      <div class="diagram-wrap">
+        <label>Front</label>
+        <svg width="150" height="340" viewBox="0 0 150 340" id="front-svg">
+          <!-- Head -->
+          <ellipse class="bp" cx="75" cy="22" rx="20" ry="22" data-part="Head" data-side="front"/>
+          <text class="bp-lbl" x="75" y="26">Head</text>
+          <!-- Neck -->
+          <rect class="bp" x="65" y="44" width="20" height="13" rx="3" data-part="Neck" data-side="front"/>
+          <text class="bp-lbl" x="75" y="53">Neck</text>
+          <!-- L Shoulder -->
+          <ellipse class="bp" cx="38" cy="64" rx="14" ry="10" data-part="Left Shoulder" data-side="front"/>
+          <text class="bp-lbl" x="38" y="67">L.Shldr</text>
+          <!-- R Shoulder -->
+          <ellipse class="bp" cx="112" cy="64" rx="14" ry="10" data-part="Right Shoulder" data-side="front"/>
+          <text class="bp-lbl" x="112" y="67">R.Shldr</text>
+          <!-- Chest -->
+          <rect class="bp" x="52" y="57" width="46" height="30" rx="4" data-part="Chest" data-side="front"/>
+          <text class="bp-lbl" x="75" y="75">Chest</text>
+          <!-- Abdomen -->
+          <rect class="bp" x="52" y="89" width="46" height="28" rx="4" data-part="Abdomen" data-side="front"/>
+          <text class="bp-lbl" x="75" y="106">Abdomen</text>
+          <!-- Lower Abdomen -->
+          <rect class="bp" x="52" y="119" width="46" height="22" rx="4" data-part="Lower Abdomen" data-side="front"/>
+          <text class="bp-lbl" x="75" y="133">Lower Abd.</text>
+          <!-- L Upper Arm -->
+          <rect class="bp" x="20" y="74" width="16" height="36" rx="6" data-part="Left Upper Arm" data-side="front"/>
+          <!-- R Upper Arm -->
+          <rect class="bp" x="114" y="74" width="16" height="36" rx="6" data-part="Right Upper Arm" data-side="front"/>
+          <!-- L Elbow -->
+          <ellipse class="bp" cx="28" cy="114" rx="10" ry="7" data-part="Left Elbow" data-side="front"/>
+          <!-- R Elbow -->
+          <ellipse class="bp" cx="122" cy="114" rx="10" ry="7" data-part="Right Elbow" data-side="front"/>
+          <!-- L Forearm -->
+          <rect class="bp" x="20" y="122" width="16" height="30" rx="6" data-part="Left Forearm" data-side="front"/>
+          <!-- R Forearm -->
+          <rect class="bp" x="114" y="122" width="16" height="30" rx="6" data-part="Right Forearm" data-side="front"/>
+          <!-- L Wrist -->
+          <ellipse class="bp" cx="28" cy="158" rx="10" ry="7" data-part="Left Wrist/Hand" data-side="front"/>
+          <text class="bp-lbl" x="6" y="161" style="text-anchor:start;font-size:7px;">Wrist</text>
+          <!-- R Wrist -->
+          <ellipse class="bp" cx="122" cy="158" rx="10" ry="7" data-part="Right Wrist/Hand" data-side="front"/>
+          <text class="bp-lbl" x="134" y="161" style="text-anchor:start;font-size:7px;">Wrist</text>
+          <!-- Groin -->
+          <rect class="bp" x="52" y="143" width="46" height="18" rx="4" data-part="Groin/Pelvis" data-side="front"/>
+          <text class="bp-lbl" x="75" y="155">Groin</text>
+          <!-- L Thigh -->
+          <rect class="bp" x="50" y="163" width="20" height="42" rx="6" data-part="Left Thigh" data-side="front"/>
+          <text class="bp-lbl" x="60" y="187">L.Thigh</text>
+          <!-- R Thigh -->
+          <rect class="bp" x="80" y="163" width="20" height="42" rx="6" data-part="Right Thigh" data-side="front"/>
+          <text class="bp-lbl" x="90" y="187">R.Thigh</text>
+          <!-- L Knee -->
+          <ellipse class="bp" cx="60" cy="210" rx="12" ry="8" data-part="Left Knee" data-side="front"/>
+          <text class="bp-lbl" x="60" y="213">Knee</text>
+          <!-- R Knee -->
+          <ellipse class="bp" cx="90" cy="210" rx="12" ry="8" data-part="Right Knee" data-side="front"/>
+          <text class="bp-lbl" x="90" y="213">Knee</text>
+          <!-- L Shin -->
+          <rect class="bp" x="50" y="220" width="20" height="46" rx="6" data-part="Left Shin/Calf" data-side="front"/>
+          <text class="bp-lbl" x="60" y="246">L.Shin</text>
+          <!-- R Shin -->
+          <rect class="bp" x="80" y="220" width="20" height="46" rx="6" data-part="Right Shin/Calf" data-side="front"/>
+          <text class="bp-lbl" x="90" y="246">R.Shin</text>
+          <!-- L Ankle -->
+          <ellipse class="bp" cx="60" cy="272" rx="13" ry="8" data-part="Left Ankle/Foot" data-side="front"/>
+          <text class="bp-lbl" x="60" y="275">Ankle</text>
+          <!-- R Ankle -->
+          <ellipse class="bp" cx="90" cy="272" rx="13" ry="8" data-part="Right Ankle/Foot" data-side="front"/>
+          <text class="bp-lbl" x="90" y="275">Ankle</text>
+        </svg>
+      </div>
+
+      <!-- BACK -->
+      <div class="diagram-wrap">
+        <label>Back</label>
+        <svg width="150" height="340" viewBox="0 0 150 340" id="back-svg">
+          <!-- Head back -->
+          <ellipse class="bp" cx="75" cy="22" rx="20" ry="22" data-part="Back of Head" data-side="back"/>
+          <text class="bp-lbl" x="75" y="26">Head</text>
+          <!-- Neck back -->
+          <rect class="bp" x="65" y="44" width="20" height="13" rx="3" data-part="Back of Neck" data-side="back"/>
+          <text class="bp-lbl" x="75" y="53">Neck</text>
+          <!-- L Shoulder back -->
+          <ellipse class="bp" cx="38" cy="64" rx="14" ry="10" data-part="Left Shoulder (Back)" data-side="back"/>
+          <text class="bp-lbl" x="38" y="67">L.Shldr</text>
+          <!-- R Shoulder back -->
+          <ellipse class="bp" cx="112" cy="64" rx="14" ry="10" data-part="Right Shoulder (Back)" data-side="back"/>
+          <text class="bp-lbl" x="112" y="67">R.Shldr</text>
+          <!-- Upper back -->
+          <rect class="bp" x="52" y="57" width="46" height="28" rx="4" data-part="Upper Back" data-side="back"/>
+          <text class="bp-lbl" x="75" y="74">Upper Back</text>
+          <!-- Mid Back -->
+          <rect class="bp" x="52" y="87" width="46" height="28" rx="4" data-part="Mid Back" data-side="back"/>
+          <text class="bp-lbl" x="75" y="104">Mid Back</text>
+          <!-- Lower Back -->
+          <rect class="bp" x="52" y="117" width="46" height="28" rx="4" data-part="Lower Back" data-side="back"/>
+          <text class="bp-lbl" x="75" y="134">Lower Back</text>
+          <!-- Buttocks -->
+          <rect class="bp" x="52" y="147" width="46" height="20" rx="4" data-part="Buttocks/Tailbone" data-side="back"/>
+          <text class="bp-lbl" x="75" y="160">Buttocks</text>
+          <!-- L Upper Arm back -->
+          <rect class="bp" x="20" y="74" width="16" height="36" rx="6" data-part="Left Upper Arm (Back)" data-side="back"/>
+          <!-- R Upper Arm back -->
+          <rect class="bp" x="114" y="74" width="16" height="36" rx="6" data-part="Right Upper Arm (Back)" data-side="back"/>
+          <!-- L Elbow back -->
+          <ellipse class="bp" cx="28" cy="114" rx="10" ry="7" data-part="Left Elbow (Back)" data-side="back"/>
+          <!-- R Elbow back -->
+          <ellipse class="bp" cx="122" cy="114" rx="10" ry="7" data-part="Right Elbow (Back)" data-side="back"/>
+          <!-- L Forearm back -->
+          <rect class="bp" x="20" y="122" width="16" height="30" rx="6" data-part="Left Forearm (Back)" data-side="back"/>
+          <!-- R Forearm back -->
+          <rect class="bp" x="114" y="122" width="16" height="30" rx="6" data-part="Right Forearm (Back)" data-side="back"/>
+          <!-- L Wrist back -->
+          <ellipse class="bp" cx="28" cy="158" rx="10" ry="7" data-part="Left Wrist/Hand (Back)" data-side="back"/>
+          <!-- R Wrist back -->
+          <ellipse class="bp" cx="122" cy="158" rx="10" ry="7" data-part="Right Wrist/Hand (Back)" data-side="back"/>
+          <!-- L Hamstring -->
+          <rect class="bp" x="50" y="169" width="20" height="38" rx="6" data-part="Left Hamstring" data-side="back"/>
+          <text class="bp-lbl" x="60" y="191">Hamstr.</text>
+          <!-- R Hamstring -->
+          <rect class="bp" x="80" y="169" width="20" height="38" rx="6" data-part="Right Hamstring" data-side="back"/>
+          <text class="bp-lbl" x="90" y="191">Hamstr.</text>
+          <!-- L Knee back -->
+          <ellipse class="bp" cx="60" cy="212" rx="12" ry="8" data-part="Left Knee (Back)" data-side="back"/>
+          <!-- R Knee back -->
+          <ellipse class="bp" cx="90" cy="212" rx="12" ry="8" data-part="Right Knee (Back)" data-side="back"/>
+          <!-- L Calf -->
+          <rect class="bp" x="50" y="222" width="20" height="44" rx="6" data-part="Left Calf" data-side="back"/>
+          <text class="bp-lbl" x="60" y="247">L.Calf</text>
+          <!-- R Calf -->
+          <rect class="bp" x="80" y="222" width="20" height="44" rx="6" data-part="Right Calf" data-side="back"/>
+          <text class="bp-lbl" x="90" y="247">R.Calf</text>
+          <!-- L Heel -->
+          <ellipse class="bp" cx="60" cy="272" rx="13" ry="8" data-part="Left Heel/Foot (Back)" data-side="back"/>
+          <text class="bp-lbl" x="60" y="275">Heel</text>
+          <!-- R Heel -->
+          <ellipse class="bp" cx="90" cy="272" rx="13" ry="8" data-part="Right Heel/Foot (Back)" data-side="back"/>
+          <text class="bp-lbl" x="90" y="275">Heel</text>
+        </svg>
+      </div>
+    </div>
+
+    <p class="sel-status" id="sel-status">Tap a body part to continue</p>
+    <button class="sel-back-btn" onclick="goTo('landing')">← Back</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ FREE TEXT ═══════════════════════════ -->
+<div class="screen hidden" id="freetext">
+  <div class="ft-card">
+    <h2>Describe your symptoms</h2>
+    <p>Tell us what you're experiencing — be as detailed as you like. Include duration, severity, and any other relevant details.</p>
+    <textarea id="ft-textarea" placeholder="e.g. I've had a throbbing headache since yesterday morning, along with nausea and sensitivity to light..."></textarea>
+    <button class="btn-primary" onclick="startFreeTextFlow()" id="ft-submit-btn">Analyse Symptoms →</button>
+    <button class="ft-back" onclick="goTo('landing')">← Back to home</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ MCQ ═══════════════════════════ -->
+<div class="screen hidden" id="mcq">
+  <div class="mcq-wrap">
+    <div class="mcq-progress">
+      <div class="mcq-progress-bar"><div class="mcq-progress-fill" id="mcq-prog-fill" style="width:0%"></div></div>
+      <span class="mcq-progress-label" id="mcq-prog-label">Q 1 of 4</span>
+    </div>
+
+    <div class="mcq-card" id="mcq-card">
+      <div class="mcq-body-ctx" id="mcq-ctx">📍 <span id="mcq-ctx-text">Loading...</span></div>
+      <div class="mcq-q" id="mcq-question">Loading question...</div>
+      <div class="mcq-options" id="mcq-options"></div>
+      <div class="mcq-write-area" id="mcq-write-area">
+        <input type="text" id="mcq-custom-input" placeholder="Type your answer here..."/>
+      </div>
+      <div class="severity-wrap" id="severity-wrap" style="display:none;">
+        <label>How severe is the pain? (1 = mild, 10 = unbearable)</label>
+        <div class="severity-row">
+          <input type="range" class="severity-slider" id="severity-slider" min="1" max="10" value="5" oninput="updateSeverity(this.value)"/>
+          <span class="severity-val sev-2" id="severity-val">5</span>
+        </div>
+      </div>
+      <button class="mcq-next-btn" id="mcq-next-btn" onclick="nextMCQ()" disabled>Continue →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ CHAT ═══════════════════════════ -->
+<div class="screen hidden" id="chat">
+  <div class="chat-sidebar">
+    <div class="chat-sidebar-header">
+      <div class="logo-badge" style="margin:0 0 4px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent);width:16px;height:16px;"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        <span style="font-size:11px;">MEDISENSE AI</span>
+      </div>
+      <h3>Consultation</h3>
+      <span id="sb-timestamp" style="font-size:11px;color:var(--muted);"></span>
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-info-row">
+      <label>Concern Area</label>
+      <p id="sb-bodypart" style="color:var(--accent2);">—</p>
+    </div>
+    <div class="sidebar-info-row">
+      <label>Pain Severity</label>
+      <div class="severity-badge" id="sb-severity">Not specified</div>
+    </div>
+    <div class="sidebar-info-row">
+      <label>Your Answers</label>
+      <p id="sb-answers" style="font-size:12px;color:var(--muted);line-height:1.6;">—</p>
+    </div>
+    <div class="sidebar-divider"></div>
+    <button class="export-btn" onclick="exportPDF()">⬇ Export Consultation PDF</button>
+    <button class="new-consult-btn" onclick="goTo('landing')">+ New Consultation</button>
+  </div>
+
+  <div class="chat-main">
+    <div class="chat-topbar">
+      <h2>AI Diagnosis & Chat</h2>
+      <div class="ai-badge">● AI Online</div>
+    </div>
+    <div id="chat-box"></div>
+    <div class="chat-input-wrap">
+      <input type="text" id="chat-input" placeholder="Ask a follow-up question..." disabled/>
+      <button class="chat-send-btn" id="chat-send-btn" onclick="sendChatMessage()" disabled>Send</button>
+    </div>
+  </div>
 </div>
 
 <script>
-    let selectedPart = "";
-    let conversationHistory = [];
+// ─────────────────────────────────────────
+//  STATE
+// ─────────────────────────────────────────
+let state = {
+  screen: 'landing',
+  bodyPart: '',
+  isFreeText: false,
+  freeTextDesc: '',
+  mcqQuestions: [],
+  mcqAnswers: [],
+  mcqStep: 0,
+  severity: 5,
+  conversationHistory: [],
+};
 
-    const chatBox = document.getElementById('chat-box');
-    const userInput = document.getElementById('user-input');
-    const sendBtn = document.getElementById('send-btn');
-    const status = document.getElementById('status');
+// Emergency keywords
+const EMERGENCY_KEYWORDS = [
+  'chest pain', 'heart attack', 'can\'t breathe', 'difficulty breathing',
+  'stroke', 'unconscious', 'fainted', 'severe bleeding', 'crushing pain',
+  'left arm pain', 'jaw pain', 'numbness on one side', 'sudden vision loss',
+  'sudden severe headache', 'anaphylaxis', 'throat closing',
+];
 
-    document.querySelectorAll('.bp').forEach(el => {
-        el.addEventListener('click', function () {
-            document.querySelectorAll('.bp').forEach(b => b.classList.remove('sel'));
-            this.classList.add('sel');
-            selectedPart = this.dataset.part;
-            status.textContent = '✓ ' + selectedPart;
-            conversationHistory = [];
-            chatBox.innerHTML = `<div class="message bot-msg">You selected <b>${selectedPart}</b>. Please describe the pain — when did it start and what kind of pain is it?</div>`;
-            userInput.disabled = false;
-            sendBtn.disabled = false;
-            userInput.focus();
-        });
+// MCQ question bank per body area
+const MCQ_BANK = {
+  default: [
+    {
+      q: 'When did the symptoms start?',
+      opts: ['Just now / today', 'A few days ago', 'About a week ago', 'More than a month ago'],
+    },
+    {
+      q: 'How would you describe the sensation?',
+      opts: ['Sharp/stabbing', 'Dull/aching', 'Burning', 'Throbbing/pulsating'],
+    },
+    {
+      q: 'Is the pain constant or does it come and go?',
+      opts: ['Constant', 'Comes and goes', 'Only when moving', 'Only at rest/night'],
+    },
+    { q: 'How severe is the pain?', opts: [], isSeverity: true },
+    {
+      q: 'Do you have any of these additional symptoms?',
+      opts: ['Fever / chills', 'Nausea / vomiting', 'Fatigue / weakness', 'None of these'],
+    },
+  ],
+  head: [
+    { q: 'Where exactly is the pain in your head?', opts: ['Forehead / temples', 'Back of head', 'Behind the eyes', 'Entire head'] },
+    { q: 'When did it start?', opts: ['Just now', 'A few hours ago', 'Yesterday', 'Days ago'] },
+    { q: 'How would you describe the headache?', opts: ['Throbbing', 'Pressure/tightness', 'Sharp/shooting', 'Dull ache'] },
+    { q: 'How severe is the pain?', opts: [], isSeverity: true },
+    { q: 'Any accompanying symptoms?', opts: ['Vision changes', 'Nausea / vomiting', 'Sensitivity to light', 'None'] },
+  ],
+  chest: [
+    { q: 'Where in the chest is the pain?', opts: ['Centre of chest', 'Left side', 'Right side', 'Spreads to arm/jaw'] },
+    { q: 'When did the chest pain start?', opts: ['Right now (sudden)', 'A few hours ago', 'Yesterday', 'Days ago'] },
+    { q: 'Does anything make it worse?', opts: ['Deep breathing', 'Physical activity', 'Lying down', 'Eating'] },
+    { q: 'How severe is the pain?', opts: [], isSeverity: true },
+    { q: 'Any other symptoms?', opts: ['Shortness of breath', 'Dizziness / sweating', 'Palpitations', 'None'] },
+  ],
+  back: [
+    { q: 'Which part of the back?', opts: ['Upper back', 'Middle back', 'Lower back', 'Tailbone area'] },
+    { q: 'When did it start?', opts: ['After an injury', 'Gradually over days', 'Woke up with it', 'Weeks or longer'] },
+    { q: 'What makes it worse?', opts: ['Bending forward', 'Standing/walking', 'Sitting', 'Nothing specific'] },
+    { q: 'How severe is the pain?', opts: [], isSeverity: true },
+    { q: 'Any related symptoms?', opts: ['Numbness/tingling in legs', 'Stiffness in morning', 'Pain radiates to buttocks', 'None'] },
+  ],
+  abdomen: [
+    { q: 'Where is the abdominal pain?', opts: ['Upper abdomen', 'Lower abdomen', 'Left side', 'Right side'] },
+    { q: 'When did it start?', opts: ['A few hours ago', 'Yesterday', 'A few days', 'A week or more'] },
+    { q: 'Does anything help or worsen it?', opts: ['Worse after eating', 'Better after eating', 'Worse when pressing', 'No change'] },
+    { q: 'How severe is the pain?', opts: [], isSeverity: true },
+    { q: 'Any other symptoms?', opts: ['Nausea / vomiting', 'Diarrhoea / constipation', 'Bloating / gas', 'None'] },
+  ],
+};
+
+function getQuestions(bodyPart) {
+  const bp = bodyPart.toLowerCase();
+  if (bp.includes('head') || bp.includes('neck')) return MCQ_BANK.head;
+  if (bp.includes('chest')) return MCQ_BANK.chest;
+  if (bp.includes('back') || bp.includes('buttock')) return MCQ_BANK.back;
+  if (bp.includes('abdomen') || bp.includes('pelvis') || bp.includes('groin')) return MCQ_BANK.abdomen;
+  return MCQ_BANK.default;
+}
+
+// ─────────────────────────────────────────
+//  SCREEN NAVIGATION
+// ─────────────────────────────────────────
+function goTo(screenId) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+  document.getElementById(screenId).classList.remove('hidden');
+  state.screen = screenId;
+}
+function goToSelector() { goTo('selector'); }
+function goToFreeText() { goTo('freetext'); }
+
+// ─────────────────────────────────────────
+//  BODY PART SELECTION
+// ─────────────────────────────────────────
+document.querySelectorAll('.bp').forEach(el => {
+  el.addEventListener('click', function() {
+    document.querySelectorAll('.bp').forEach(b => b.classList.remove('sel'));
+    this.classList.add('sel');
+    state.bodyPart = this.dataset.part;
+    const side = this.dataset.side === 'back' ? ' (Back)' : '';
+    document.getElementById('sel-status').textContent = '✓ ' + state.bodyPart;
+    state.isFreeText = false;
+    setTimeout(() => startMCQFlow(), 600);
+  });
+});
+
+// ─────────────────────────────────────────
+//  FREE TEXT START
+// ─────────────────────────────────────────
+function startFreeTextFlow() {
+  const val = document.getElementById('ft-textarea').value.trim();
+  if (!val) return;
+  state.freeTextDesc = val;
+  state.isFreeText = true;
+  state.bodyPart = 'General Symptoms';
+  checkEmergency(val);
+  startMCQFlow();
+}
+
+// ─────────────────────────────────────────
+//  MCQ FLOW
+// ─────────────────────────────────────────
+function startMCQFlow() {
+  state.mcqQuestions = getQuestions(state.bodyPart);
+  state.mcqAnswers = [];
+  state.mcqStep = 0;
+  goTo('mcq');
+  renderMCQStep();
+}
+
+function renderMCQStep() {
+  const q = state.mcqQuestions[state.mcqStep];
+  const total = state.mcqQuestions.length;
+  const pct = (state.mcqStep / total) * 100;
+  document.getElementById('mcq-prog-fill').style.width = pct + '%';
+  document.getElementById('mcq-prog-label').textContent = `Q ${state.mcqStep + 1} of ${total}`;
+  document.getElementById('mcq-ctx-text').textContent = state.bodyPart;
+  document.getElementById('mcq-question').textContent = q.q;
+
+  const optContainer = document.getElementById('mcq-options');
+  optContainer.innerHTML = '';
+  const writeArea = document.getElementById('mcq-write-area');
+  writeArea.classList.remove('open');
+  document.getElementById('mcq-custom-input').value = '';
+  document.getElementById('severity-wrap').style.display = q.isSeverity ? 'flex' : 'none';
+  document.getElementById('mcq-next-btn').disabled = !q.isSeverity;
+
+  if (q.isSeverity) {
+    updateSeverity(5);
+    document.getElementById('severity-slider').value = 5;
+    document.getElementById('mcq-next-btn').disabled = false;
+    return;
+  }
+
+  const letters = ['A', 'B', 'C', 'D'];
+  q.opts.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'mcq-opt';
+    btn.innerHTML = `<span class="opt-num">${letters[i]}</span> ${opt}`;
+    btn.onclick = () => {
+      document.querySelectorAll('.mcq-opt').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      writeArea.classList.remove('open');
+      document.getElementById('mcq-next-btn').disabled = false;
+      checkEmergency(opt);
+    };
+    optContainer.appendChild(btn);
+  });
+
+  // Write own answer
+  const writeBtn = document.createElement('button');
+  writeBtn.className = 'mcq-write';
+  writeBtn.innerHTML = '✏️ Write your own answer';
+  writeBtn.onclick = () => {
+    document.querySelectorAll('.mcq-opt').forEach(b => b.classList.remove('selected'));
+    writeArea.classList.add('open');
+    document.getElementById('mcq-custom-input').focus();
+    document.getElementById('mcq-next-btn').disabled = false;
+  };
+  optContainer.appendChild(writeBtn);
+}
+
+function updateSeverity(val) {
+  state.severity = parseInt(val);
+  const el = document.getElementById('severity-val');
+  el.textContent = val;
+  el.className = 'severity-val ' + (val <= 3 ? 'sev-1' : val <= 6 ? 'sev-2' : val <= 8 ? 'sev-3' : 'sev-4');
+  if (val >= 9) showEmergency("Your pain severity is very high.");
+}
+
+function nextMCQ() {
+  const q = state.mcqQuestions[state.mcqStep];
+  let answer = '';
+
+  if (q.isSeverity) {
+    answer = `Pain severity: ${state.severity}/10`;
+  } else {
+    const writeArea = document.getElementById('mcq-write-area');
+    if (writeArea.classList.contains('open')) {
+      answer = document.getElementById('mcq-custom-input').value.trim() || 'No answer provided';
+    } else {
+      const sel = document.querySelector('.mcq-opt.selected');
+      answer = sel ? sel.textContent.trim().replace(/^[A-D]\s*/, '') : '';
+    }
+  }
+
+  state.mcqAnswers.push({ q: q.q, a: answer });
+  checkEmergency(answer);
+  state.mcqStep++;
+
+  if (state.mcqStep >= state.mcqQuestions.length) {
+    goToChatWithDiagnosis();
+  } else {
+    document.getElementById('mcq-next-btn').disabled = true;
+    renderMCQStep();
+  }
+}
+
+// ─────────────────────────────────────────
+//  EMERGENCY
+// ─────────────────────────────────────────
+function checkEmergency(text) {
+  const t = text.toLowerCase();
+  if (EMERGENCY_KEYWORDS.some(k => t.includes(k))) {
+    showEmergency();
+  }
+  // High severity
+}
+function showEmergency(msg) {
+  document.getElementById('emergency-banner').classList.add('show');
+}
+function dismissEmergency() {
+  document.getElementById('emergency-banner').classList.remove('show');
+}
+
+// ─────────────────────────────────────────
+//  CHAT / DIAGNOSIS
+// ─────────────────────────────────────────
+function goToChatWithDiagnosis() {
+  goTo('chat');
+
+  // Sidebar info
+  document.getElementById('sb-bodypart').textContent = state.bodyPart;
+  document.getElementById('sb-timestamp').textContent = new Date().toLocaleString();
+  const sev = state.severity;
+  const sevBadge = document.getElementById('sb-severity');
+  const col = sev <= 3 ? '#00e5c0' : sev <= 6 ? '#3b9eff' : sev <= 8 ? '#ff9900' : '#ff5f7e';
+  sevBadge.style.color = col;
+  sevBadge.style.borderColor = col + '44';
+  sevBadge.textContent = `${sev}/10 — ${sev <= 3 ? 'Mild' : sev <= 6 ? 'Moderate' : sev <= 8 ? 'Severe' : 'Critical'}`;
+  document.getElementById('sb-answers').innerHTML = state.mcqAnswers.map(a => `<b>${a.q}</b><br/>${a.a}`).join('<br/><br/>');
+
+  const chatBox = document.getElementById('chat-box');
+  chatBox.innerHTML = '';
+
+  // Build prompt
+  const qaBlock = state.mcqAnswers.map(a => `Q: ${a.q}\nA: ${a.a}`).join('\n');
+  const intro = state.isFreeText
+    ? `The user described: "${state.freeTextDesc}"`
+    : `The user selected body area: ${state.bodyPart}`;
+
+  const prompt = `${intro}
+
+Follow-up answers:
+${qaBlock}
+
+Pain severity: ${state.severity}/10
+
+Based on this information, provide your initial diagnosis response in this format:
+🩺 **Possible Conditions:**
+- List 2–4 likely conditions with a brief explanation for each
+
+🌿 **Home Remedies & Relief Tips:**
+- List 3–5 practical, natural remedies
+
+💡 **Doctor's Advice:**
+- One gentle recommendation about when to see a doctor
+
+Keep the tone warm, clear, and non-alarmist. Format with simple HTML like <b> and <br/> for readability. Then invite the user to ask follow-up questions.`;
+
+  state.conversationHistory = [{ role: 'user', content: prompt }];
+  callAI();
+}
+
+function addChatMsg(html, type) {
+  const chatBox = document.getElementById('chat-box');
+  const div = document.createElement('div');
+  div.className = 'msg ' + type;
+  div.innerHTML = html;
+  chatBox.appendChild(div);
+  chatBox.scrollTop = chatBox.scrollHeight;
+  return div;
+}
+
+async function callAI() {
+  const thinking = addChatMsg('Analysing your symptoms...', 'bot-msg thinking-msg');
+  const chatInput = document.getElementById('chat-input');
+  const sendBtn = document.getElementById('chat-send-btn');
+  chatInput.disabled = true; sendBtn.disabled = true;
+
+  try {
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        bodyPart: state.bodyPart,
+        history: state.conversationHistory,
+      }),
     });
-
-    function addMessage(text, type) {
-        const div = document.createElement('div');
-        div.className = 'message ' + type;
-        div.innerHTML = text;
-        chatBox.appendChild(div);
-        chatBox.scrollTop = chatBox.scrollHeight;
-        return div;
+    const data = await response.json();
+    thinking.remove();
+    if (!response.ok) {
+      addChatMsg('<b>Error:</b> ' + (data.error || 'Unknown error'), 'err-msg');
+      chatInput.disabled = false; sendBtn.disabled = false;
+      return;
     }
+    const reply = data.reply || 'Sorry, I could not generate a response.';
+    // Convert markdown-ish to simple HTML
+    const formatted = reply
+      .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+      .replace(/\n/g, '<br/>');
+    addChatMsg(formatted, 'bot-msg');
+    state.conversationHistory.push({ role: 'assistant', content: reply });
+    chatInput.disabled = false; sendBtn.disabled = false;
+    chatInput.focus();
+  } catch (err) {
+    thinking.remove();
+    addChatMsg('Connection error: ' + err.message, 'err-msg');
+    chatInput.disabled = false; sendBtn.disabled = false;
+  }
+}
 
-    function sendFreeText() {
-        const desc = document.getElementById('free-desc').value.trim();
-        if (!desc) return;
-        selectedPart = "";
-        conversationHistory = [];
-        chatBox.innerHTML = '';
-        addMessage(desc, 'user-msg');
-        conversationHistory.push({ role: 'user', content: desc });
-        document.getElementById('free-desc').value = '';
-        userInput.disabled = false;
-        sendBtn.disabled = false;
-        callAPI();
-    }
+function sendChatMessage() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  addChatMsg(text, 'user-msg');
+  input.value = '';
+  state.conversationHistory.push({ role: 'user', content: text });
+  callAI();
+}
 
-    async function sendMessage() {
-        const text = userInput.value.trim();
-        if (!text) return;
-        addMessage(text, 'user-msg');
-        userInput.value = '';
-        conversationHistory.push({ role: 'user', content: text });
-        callAPI();
-    }
+document.getElementById('chat-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') sendChatMessage();
+});
 
-    async function callAPI() {
-        const thinking = addMessage('Thinking...', 'bot-msg thinking');
-        try {
-            const response = await fetch('/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    bodyPart: selectedPart,
-                    history: conversationHistory
-                })
-            });
-            const data = await response.json();
-            thinking.remove();
-            if (!response.ok) {
-                addMessage('<b>Error:</b> ' + (data.error || 'Unknown error'), 'err-msg');
-                return;
-            }
-            addMessage(data.reply, 'bot-msg');
-            conversationHistory.push({ role: 'assistant', content: data.reply });
-        } catch (error) {
-            thinking.remove();
-            addMessage('<b>Connection error:</b> ' + error.message, 'err-msg');
-        }
-    }
+// ─────────────────────────────────────────
+//  EXPORT PDF
+// ─────────────────────────────────────────
+function exportPDF() {
+  const msgs = [...document.querySelectorAll('#chat-box .msg')].map(m => {
+    const isBot = m.classList.contains('bot-msg');
+    return `${isBot ? 'MediSense AI' : 'You'}: ${m.innerText}`;
+  }).join('\n\n');
 
-    sendBtn.addEventListener('click', sendMessage);
-    userInput.addEventListener('keydown', e => {
-        if (e.key === 'Enter') sendMessage();
-    });
+  const qa = state.mcqAnswers.map(a => `• ${a.q}\n  → ${a.a}`).join('\n');
+  const content = `MEDISENSE AI — CONSULTATION REPORT
+Generated: ${new Date().toLocaleString()}
+${'─'.repeat(50)}
+
+CONCERN AREA: ${state.bodyPart}
+PAIN SEVERITY: ${state.severity}/10
+
+SYMPTOM QUESTIONNAIRE:
+${qa}
+
+${'─'.repeat(50)}
+CONSULTATION TRANSCRIPT:
+${msgs}
+
+${'─'.repeat(50)}
+DISCLAIMER: This report is for informational purposes only and does not constitute medical advice. 
+Please consult a licensed healthcare professional for any medical decisions.`;
+
+  const blob = new Blob([content], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `MediSense_Consultation_${Date.now()}.txt`;
+  a.click();
+}
 </script>
 </body>
 </html>
