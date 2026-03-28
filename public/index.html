@@ -562,7 +562,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
       <p id="sb-answers" style="font-size:12px;color:var(--muted);line-height:1.6;">—</p>
     </div>
     <div class="sidebar-divider"></div>
-    <button class="export-btn" onclick="exportPDF()">⬇ Export Consultation</button>
+    <button class="export-btn" onclick="exportPDF()">⬇ Export Consultation PDF</button>
     <button class="new-consult-btn" onclick="goTo('landing')">+ New Consultation</button>
   </div>
 
@@ -588,109 +588,50 @@ let state = {
   bodyPart: '',
   isFreeText: false,
   freeTextDesc: '',
-  mcqQuestions: [],
   mcqAnswers: [],
   mcqStep: 0,
+  mcqTotal: 5,
+  currentQuestion: null,
   severity: 5,
+  severityAsked: false,
+  loadingQuestion: false,
   conversationHistory: [],
 };
 
-// Emergency keywords
 const EMERGENCY_KEYWORDS = [
-  'chest pain', 'heart attack', 'can\'t breathe', 'difficulty breathing',
-  'stroke', 'unconscious', 'fainted', 'severe bleeding', 'crushing pain',
-  'left arm pain', 'jaw pain', 'numbness on one side', 'sudden vision loss',
-  'sudden severe headache', 'anaphylaxis', 'throat closing',
+  'chest pain','heart attack','can\'t breathe','difficulty breathing',
+  'stroke','unconscious','fainted','severe bleeding','crushing pain',
+  'left arm pain','jaw pain','numbness on one side','sudden vision loss',
+  'sudden severe headache','anaphylaxis','throat closing',
 ];
 
-// MCQ question bank per body area
-const MCQ_BANK = {
-  default: [
-    {
-      q: 'When did the symptoms start?',
-      opts: ['Just now / today', 'A few days ago', 'About a week ago', 'More than a month ago'],
-    },
-    {
-      q: 'How would you describe the sensation?',
-      opts: ['Sharp/stabbing', 'Dull/aching', 'Burning', 'Throbbing/pulsating'],
-    },
-    {
-      q: 'Is the pain constant or does it come and go?',
-      opts: ['Constant', 'Comes and goes', 'Only when moving', 'Only at rest/night'],
-    },
-    { q: 'How severe is the pain?', opts: [], isSeverity: true },
-    {
-      q: 'Do you have any of these additional symptoms?',
-      opts: ['Fever / chills', 'Nausea / vomiting', 'Fatigue / weakness', 'None of these'],
-    },
-  ],
-  head: [
-    { q: 'Where exactly is the pain in your head?', opts: ['Forehead / temples', 'Back of head', 'Behind the eyes', 'Entire head'] },
-    { q: 'When did it start?', opts: ['Just now', 'A few hours ago', 'Yesterday', 'Days ago'] },
-    { q: 'How would you describe the headache?', opts: ['Throbbing', 'Pressure/tightness', 'Sharp/shooting', 'Dull ache'] },
-    { q: 'How severe is the pain?', opts: [], isSeverity: true },
-    { q: 'Any accompanying symptoms?', opts: ['Vision changes', 'Nausea / vomiting', 'Sensitivity to light', 'None'] },
-  ],
-  chest: [
-    { q: 'Where in the chest is the pain?', opts: ['Centre of chest', 'Left side', 'Right side', 'Spreads to arm/jaw'] },
-    { q: 'When did the chest pain start?', opts: ['Right now (sudden)', 'A few hours ago', 'Yesterday', 'Days ago'] },
-    { q: 'Does anything make it worse?', opts: ['Deep breathing', 'Physical activity', 'Lying down', 'Eating'] },
-    { q: 'How severe is the pain?', opts: [], isSeverity: true },
-    { q: 'Any other symptoms?', opts: ['Shortness of breath', 'Dizziness / sweating', 'Palpitations', 'None'] },
-  ],
-  back: [
-    { q: 'Which part of the back?', opts: ['Upper back', 'Middle back', 'Lower back', 'Tailbone area'] },
-    { q: 'When did it start?', opts: ['After an injury', 'Gradually over days', 'Woke up with it', 'Weeks or longer'] },
-    { q: 'What makes it worse?', opts: ['Bending forward', 'Standing/walking', 'Sitting', 'Nothing specific'] },
-    { q: 'How severe is the pain?', opts: [], isSeverity: true },
-    { q: 'Any related symptoms?', opts: ['Numbness/tingling in legs', 'Stiffness in morning', 'Pain radiates to buttocks', 'None'] },
-  ],
-  abdomen: [
-    { q: 'Where is the abdominal pain?', opts: ['Upper abdomen', 'Lower abdomen', 'Left side', 'Right side'] },
-    { q: 'When did it start?', opts: ['A few hours ago', 'Yesterday', 'A few days', 'A week or more'] },
-    { q: 'Does anything help or worsen it?', opts: ['Worse after eating', 'Better after eating', 'Worse when pressing', 'No change'] },
-    { q: 'How severe is the pain?', opts: [], isSeverity: true },
-    { q: 'Any other symptoms?', opts: ['Nausea / vomiting', 'Diarrhoea / constipation', 'Bloating / gas', 'None'] },
-  ],
-};
-
-function getQuestions(bodyPart) {
-  const bp = bodyPart.toLowerCase();
-  if (bp.includes('head') || bp.includes('neck')) return MCQ_BANK.head;
-  if (bp.includes('chest')) return MCQ_BANK.chest;
-  if (bp.includes('back') || bp.includes('buttock')) return MCQ_BANK.back;
-  if (bp.includes('abdomen') || bp.includes('pelvis') || bp.includes('groin')) return MCQ_BANK.abdomen;
-  return MCQ_BANK.default;
-}
-
 // ─────────────────────────────────────────
-//  SCREEN NAVIGATION
+//  NAVIGATION
 // ─────────────────────────────────────────
-function goTo(screenId) {
+function goTo(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-  document.getElementById(screenId).classList.remove('hidden');
-  state.screen = screenId;
+  document.getElementById(id).classList.remove('hidden');
+  state.screen = id;
 }
 function goToSelector() { goTo('selector'); }
-function goToFreeText() { goTo('freetext'); }
+function goToFreeText()  { goTo('freetext'); }
 
 // ─────────────────────────────────────────
 //  BODY PART SELECTION
 // ─────────────────────────────────────────
 document.querySelectorAll('.bp').forEach(el => {
-  el.addEventListener('click', function() {
+  el.addEventListener('click', function () {
     document.querySelectorAll('.bp').forEach(b => b.classList.remove('sel'));
     this.classList.add('sel');
     state.bodyPart = this.dataset.part;
-    const side = this.dataset.side === 'back' ? ' (Back)' : '';
     document.getElementById('sel-status').textContent = '✓ ' + state.bodyPart;
     state.isFreeText = false;
-    setTimeout(() => startMCQFlow(), 600);
+    setTimeout(() => startMCQFlow(), 500);
   });
 });
 
 // ─────────────────────────────────────────
-//  FREE TEXT START
+//  FREE TEXT
 // ─────────────────────────────────────────
 function startFreeTextFlow() {
   const val = document.getElementById('ft-textarea').value.trim();
@@ -703,42 +644,142 @@ function startFreeTextFlow() {
 }
 
 // ─────────────────────────────────────────
-//  MCQ FLOW
+//  MCQ FLOW — AI DRIVEN
 // ─────────────────────────────────────────
 function startMCQFlow() {
-  state.mcqQuestions = getQuestions(state.bodyPart);
   state.mcqAnswers = [];
   state.mcqStep = 0;
+  state.mcqTotal = 5;
+  state.severityAsked = false;
+  state.currentQuestion = null;
+  state.loadingQuestion = false;
   goTo('mcq');
-  renderMCQStep();
+  fetchNextQuestion();
 }
 
-function renderMCQStep() {
-  const q = state.mcqQuestions[state.mcqStep];
-  const total = state.mcqQuestions.length;
-  const pct = (state.mcqStep / total) * 100;
-  document.getElementById('mcq-prog-fill').style.width = pct + '%';
-  document.getElementById('mcq-prog-label').textContent = `Q ${state.mcqStep + 1} of ${total}`;
-  document.getElementById('mcq-ctx-text').textContent = state.bodyPart;
-  document.getElementById('mcq-question').textContent = q.q;
+// Called after each answer is recorded
+function fetchNextQuestion() {
+  // After Q1, always inject severity slider as Q2
+  if (state.mcqStep === 1 && !state.severityAsked) {
+    renderSeveritySlider();
+    return;
+  }
+  showMCQLoading(true);
+  callQuestionAPI();
+}
+
+async function callQuestionAPI() {
+  const qaBlock = state.mcqAnswers.map((a,i) => `Q${i+1}: ${a.q}\nA${i+1}: ${a.a}`).join('\n');
+  const intro = state.isFreeText
+    ? `Patient described: "${state.freeTextDesc}"`
+    : `Patient selected body area: ${state.bodyPart}`;
+
+  const severityCtx = state.severityAsked ? `Pain severity: ${state.severity}/10` : '';
+  const maxQ = state.severity >= 8 ? 7 : state.severity >= 5 ? 5 : 3;
+  state.mcqTotal = maxQ + 1; // +1 for severity slide
+
+  const questionsLeft = (maxQ - state.mcqAnswers.filter(a => !a.isSeverity).length);
+  const shouldDiagnose = questionsLeft <= 0;
+
+  const systemPrompt = `You are a medical diagnostic AI assistant helping gather symptom information through an MCQ questionnaire.
+
+${intro}
+${severityCtx}
+${qaBlock ? 'Answers so far:\n' + qaBlock : ''}
+
+Your task: ${shouldDiagnose
+  ? 'You have enough information. Respond with EXACTLY: {"done": true}'
+  : `Generate the single most diagnostically useful next MCQ question to narrow down the condition.
+Rules:
+- Ask only ONE question
+- Provide exactly 3 short answer options (max 6 words each)
+- Each question must follow logically from previous answers and push toward identifying the specific condition
+- Ask about: location specifics, timing, triggers, associated symptoms, relieving factors, radiation of pain — whichever is most useful NEXT given what you know
+- Do NOT repeat anything already asked
+- Severity is already collected separately, do not ask about it
+- Maximum ${questionsLeft} more question(s) to ask
+
+Respond ONLY with valid JSON, no other text:
+{"question": "...", "options": ["...", "...", "..."]}`}`;
+
+  try {
+    const res = await fetch('/api/question', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: systemPrompt }),
+    });
+    const data = await res.json();
+    showMCQLoading(false);
+
+    if (data.done || shouldDiagnose) {
+      goToChatWithDiagnosis();
+      return;
+    }
+
+    if (data.question && data.options) {
+      state.currentQuestion = data;
+      renderAIQuestion(data.question, data.options);
+    } else {
+      // Fallback: go to diagnosis if parsing failed after enough answers
+      if (state.mcqAnswers.length >= 3) {
+        goToChatWithDiagnosis();
+      } else {
+        showMCQError();
+      }
+    }
+  } catch (err) {
+    showMCQLoading(false);
+    if (state.mcqAnswers.length >= 3) {
+      goToChatWithDiagnosis();
+    } else {
+      showMCQError();
+    }
+  }
+}
+
+function showMCQLoading(on) {
+  state.loadingQuestion = on;
+  document.getElementById('mcq-options').innerHTML = on
+    ? '<div style="color:var(--muted);font-size:13px;font-style:italic;padding:8px 0;">Generating next question...</div>'
+    : '';
+  document.getElementById('mcq-question').textContent = on ? '...' : (state.currentQuestion?.question || '');
+  document.getElementById('severity-wrap').style.display = 'none';
+  document.getElementById('mcq-write-area').classList.remove('open');
+  document.getElementById('mcq-next-btn').disabled = true;
+}
+
+function showMCQError() {
+  document.getElementById('mcq-options').innerHTML =
+    '<div style="color:var(--accent3);font-size:13px;padding:8px 0;">⚠️ Failed to generate question. <button onclick="callQuestionAPI()" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:13px;">Retry</button></div>';
+}
+
+function renderSeveritySlider() {
+  state.currentQuestion = { question: 'How severe is the pain or discomfort?', options: [], isSeverity: true };
+  updateProgress();
+  document.getElementById('mcq-question').textContent = 'How severe is the pain or discomfort?';
+  document.getElementById('mcq-options').innerHTML = '';
+  document.getElementById('mcq-write-area').classList.remove('open');
+  document.getElementById('severity-wrap').style.display = 'flex';
+  document.getElementById('severity-slider').value = 5;
+  updateSeverity(5);
+  document.getElementById('mcq-next-btn').disabled = false;
+}
+
+function renderAIQuestion(question, options) {
+  state.currentQuestion = { question, options };
+  updateProgress();
+  document.getElementById('mcq-question').textContent = question;
+  document.getElementById('severity-wrap').style.display = 'none';
 
   const optContainer = document.getElementById('mcq-options');
   optContainer.innerHTML = '';
   const writeArea = document.getElementById('mcq-write-area');
   writeArea.classList.remove('open');
   document.getElementById('mcq-custom-input').value = '';
-  document.getElementById('severity-wrap').style.display = q.isSeverity ? 'flex' : 'none';
-  document.getElementById('mcq-next-btn').disabled = !q.isSeverity;
+  document.getElementById('mcq-next-btn').disabled = true;
 
-  if (q.isSeverity) {
-    updateSeverity(5);
-    document.getElementById('severity-slider').value = 5;
-    document.getElementById('mcq-next-btn').disabled = false;
-    return;
-  }
-
-  const letters = ['A', 'B', 'C', 'D'];
-  q.opts.forEach((opt, i) => {
+  const letters = ['A', 'B', 'C'];
+  options.forEach((opt, i) => {
     const btn = document.createElement('button');
     btn.className = 'mcq-opt';
     btn.innerHTML = `<span class="opt-num">${letters[i]}</span> ${opt}`;
@@ -752,7 +793,7 @@ function renderMCQStep() {
     optContainer.appendChild(btn);
   });
 
-  // Write own answer
+  // Write own option
   const writeBtn = document.createElement('button');
   writeBtn.className = 'mcq-write';
   writeBtn.innerHTML = '✏️ Write your own answer';
@@ -765,58 +806,63 @@ function renderMCQStep() {
   optContainer.appendChild(writeBtn);
 }
 
+function updateProgress() {
+  state.mcqStep++;
+  const pct = Math.min(((state.mcqStep - 1) / state.mcqTotal) * 100, 90);
+  document.getElementById('mcq-prog-fill').style.width = pct + '%';
+  document.getElementById('mcq-prog-label').textContent = `Q ${state.mcqStep}`;
+  document.getElementById('mcq-ctx-text').textContent = state.bodyPart;
+}
+
 function updateSeverity(val) {
   state.severity = parseInt(val);
   const el = document.getElementById('severity-val');
   el.textContent = val;
   el.className = 'severity-val ' + (val <= 3 ? 'sev-1' : val <= 6 ? 'sev-2' : val <= 8 ? 'sev-3' : 'sev-4');
-  if (val >= 9) showEmergency("Your pain severity is very high.");
+  if (val >= 9) showEmergency();
 }
 
 function nextMCQ() {
-  const q = state.mcqQuestions[state.mcqStep];
+  if (state.loadingQuestion) return;
+  const q = state.currentQuestion;
   let answer = '';
 
   if (q.isSeverity) {
-    answer = `Pain severity: ${state.severity}/10`;
+    answer = `${state.severity}/10`;
+    state.severityAsked = true;
+    state.mcqAnswers.push({ q: 'Pain severity', a: answer, isSeverity: true });
+    // Now we know severity — set total
+    state.mcqTotal = (state.severity >= 8 ? 7 : state.severity >= 5 ? 5 : 3) + 1;
+    checkEmergency('severity ' + state.severity);
   } else {
     const writeArea = document.getElementById('mcq-write-area');
     if (writeArea.classList.contains('open')) {
-      answer = document.getElementById('mcq-custom-input').value.trim() || 'No answer provided';
+      answer = document.getElementById('mcq-custom-input').value.trim() || 'Not specified';
     } else {
       const sel = document.querySelector('.mcq-opt.selected');
-      answer = sel ? sel.textContent.trim().replace(/^[A-D]\s*/, '') : '';
+      answer = sel ? sel.textContent.trim().replace(/^[A-C]\s*/, '') : '';
     }
+    if (!answer) return;
+    state.mcqAnswers.push({ q: q.question, a: answer });
+    checkEmergency(answer);
   }
 
-  state.mcqAnswers.push({ q: q.q, a: answer });
-  checkEmergency(answer);
-  state.mcqStep++;
-
-  if (state.mcqStep >= state.mcqQuestions.length) {
-    goToChatWithDiagnosis();
-  } else {
-    document.getElementById('mcq-next-btn').disabled = true;
-    renderMCQStep();
-  }
+  document.getElementById('mcq-next-btn').disabled = true;
+  fetchNextQuestion();
 }
 
 // ─────────────────────────────────────────
 //  EMERGENCY
 // ─────────────────────────────────────────
 function checkEmergency(text) {
-  const t = text.toLowerCase();
-  if (EMERGENCY_KEYWORDS.some(k => t.includes(k))) {
+  const t = (text || '').toLowerCase();
+  const sevNum = parseInt(text);
+  if (EMERGENCY_KEYWORDS.some(k => t.includes(k)) || (!isNaN(sevNum) && sevNum >= 9)) {
     showEmergency();
   }
-  // High severity
 }
-function showEmergency(msg) {
-  document.getElementById('emergency-banner').classList.add('show');
-}
-function dismissEmergency() {
-  document.getElementById('emergency-banner').classList.remove('show');
-}
+function showEmergency() { document.getElementById('emergency-banner').classList.add('show'); }
+function dismissEmergency() { document.getElementById('emergency-banner').classList.remove('show'); }
 
 // ─────────────────────────────────────────
 //  CHAT / DIAGNOSIS
@@ -824,7 +870,6 @@ function dismissEmergency() {
 function goToChatWithDiagnosis() {
   goTo('chat');
 
-  // Sidebar info
   document.getElementById('sb-bodypart').textContent = state.bodyPart;
   document.getElementById('sb-timestamp').textContent = new Date().toLocaleString();
   const sev = state.severity;
@@ -833,35 +878,44 @@ function goToChatWithDiagnosis() {
   sevBadge.style.color = col;
   sevBadge.style.borderColor = col + '44';
   sevBadge.textContent = `${sev}/10 — ${sev <= 3 ? 'Mild' : sev <= 6 ? 'Moderate' : sev <= 8 ? 'Severe' : 'Critical'}`;
-  document.getElementById('sb-answers').innerHTML = state.mcqAnswers.map(a => `<b>${a.q}</b><br/>${a.a}`).join('<br/><br/>');
+  document.getElementById('sb-answers').innerHTML = state.mcqAnswers
+    .map(a => `<b>${a.q}</b><br/>${a.a}`).join('<br/><br/>');
 
-  const chatBox = document.getElementById('chat-box');
-  chatBox.innerHTML = '';
+  document.getElementById('chat-box').innerHTML = '';
 
-  // Build prompt
   const qaBlock = state.mcqAnswers.map(a => `Q: ${a.q}\nA: ${a.a}`).join('\n');
   const intro = state.isFreeText
-    ? `The user described: "${state.freeTextDesc}"`
-    : `The user selected body area: ${state.bodyPart}`;
+    ? `Patient described: "${state.freeTextDesc}"`
+    : `Patient selected body area: ${state.bodyPart}`;
+
+  const severityLevel = sev <= 3 ? 'mild' : sev <= 6 ? 'moderate' : sev <= 8 ? 'severe' : 'critical/emergency';
 
   const prompt = `${intro}
 
-Follow-up answers:
+Symptom questionnaire answers:
 ${qaBlock}
 
-Pain severity: ${state.severity}/10
+Pain severity: ${sev}/10 (${severityLevel})
 
-Based on this information, provide your initial diagnosis response in this format:
-🩺 **Possible Conditions:**
-- List 2–4 likely conditions with a brief explanation for each
+Based on all the above, provide your full medical assessment. Follow this EXACT format:
 
-🌿 **Home Remedies & Relief Tips:**
-- List 3–5 practical, natural remedies
+🎯 PRIMARY DIAGNOSIS:
+State the single most likely condition with a confidence level (e.g. "High", "Moderate", "Possible"). Give a clear 2–3 sentence explanation of why this matches the symptoms.
 
-💡 **Doctor's Advice:**
-- One gentle recommendation about when to see a doctor
+📋 CONDITION DETAILS:
+Explain what this condition is, what causes it, and how it typically progresses. Keep it clear and accessible.
 
-Keep the tone warm, clear, and non-alarmist. Format with simple HTML like <b> and <br/> for readability. Then invite the user to ask follow-up questions.`;
+${sev <= 6 ? `🌿 HOME REMEDIES & SELF-CARE:
+List 4–5 specific, actionable home remedies and lifestyle tips that can genuinely help this condition. Be specific (e.g. not just "rest" but how and how long).` : `🚨 URGENT ACTION REQUIRED:
+This severity level requires medical attention. Explain clearly why this is serious, what could happen if untreated, and give strong but calm advice to seek medical help immediately. Include what to tell the doctor/ER.`}
+
+🔍 ALTERNATIVE CONDITIONS TO CONSIDER:
+List 2–3 other conditions that could explain these symptoms, with a brief reason for each. This helps the doctor rule things out.
+
+💡 NEXT STEPS:
+${sev <= 3 ? 'Gentle advice — monitor at home, when to see a doctor if it worsens.' : sev <= 6 ? 'Recommend booking a doctor appointment soon. Explain what tests might be done.' : 'Strong recommendation to go to ER or call emergency services. What to tell them.'}
+
+Format using simple HTML: <b> for bold, <br/> for line breaks. Be thorough, warm, and clear. Then invite follow-up questions.`;
 
   state.conversationHistory = [{ role: 'user', content: prompt }];
   callAI();
@@ -884,23 +938,19 @@ async function callAI() {
   chatInput.disabled = true; sendBtn.disabled = true;
 
   try {
-    const response = await fetch('/api/chat', {
+    const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        bodyPart: state.bodyPart,
-        history: state.conversationHistory,
-      }),
+      body: JSON.stringify({ bodyPart: state.bodyPart, history: state.conversationHistory }),
     });
-    const data = await response.json();
+    const data = await res.json();
     thinking.remove();
-    if (!response.ok) {
+    if (!res.ok) {
       addChatMsg('<b>Error:</b> ' + (data.error || 'Unknown error'), 'err-msg');
       chatInput.disabled = false; sendBtn.disabled = false;
       return;
     }
     const reply = data.reply || 'Sorry, I could not generate a response.';
-    // Convert markdown-ish to simple HTML
     const formatted = reply
       .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
       .replace(/\n/g, '<br/>');
@@ -924,20 +974,15 @@ function sendChatMessage() {
   state.conversationHistory.push({ role: 'user', content: text });
   callAI();
 }
-
-document.getElementById('chat-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') sendChatMessage();
-});
+document.getElementById('chat-input').addEventListener('keydown', e => { if (e.key === 'Enter') sendChatMessage(); });
 
 // ─────────────────────────────────────────
-//  EXPORT PDF
+//  EXPORT
 // ─────────────────────────────────────────
 function exportPDF() {
-  const msgs = [...document.querySelectorAll('#chat-box .msg')].map(m => {
-    const isBot = m.classList.contains('bot-msg');
-    return `${isBot ? 'MediSense AI' : 'You'}: ${m.innerText}`;
-  }).join('\n\n');
-
+  const msgs = [...document.querySelectorAll('#chat-box .msg')]
+    .map(m => `${m.classList.contains('bot-msg') ? 'MediSense AI' : 'You'}: ${m.innerText}`)
+    .join('\n\n');
   const qa = state.mcqAnswers.map(a => `• ${a.q}\n  → ${a.a}`).join('\n');
   const content = `MEDISENSE AI — CONSULTATION REPORT
 Generated: ${new Date().toLocaleString()}
@@ -954,7 +999,7 @@ CONSULTATION TRANSCRIPT:
 ${msgs}
 
 ${'─'.repeat(50)}
-DISCLAIMER: This report is for informational purposes only and does not constitute medical advice. 
+DISCLAIMER: This report is for informational purposes only and does not constitute medical advice.
 Please consult a licensed healthcare professional for any medical decisions.`;
 
   const blob = new Blob([content], { type: 'text/plain' });
