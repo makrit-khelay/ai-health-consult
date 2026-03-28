@@ -301,6 +301,31 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 
 /* ── util ── */
 .hidden{display:none!important;}
+
+/* ══════════ LANGUAGE SELECTOR ══════════ */
+.lang-selector{
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+  margin-top:28px;
+}
+.lang-selector-label{
+  font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+}
+.lang-pills{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
+.lang-pill{
+  padding:8px 20px;border-radius:100px;cursor:pointer;font-size:13px;font-weight:500;
+  border:1px solid var(--border);background:var(--card);color:var(--muted);
+  transition:all .2s;font-family:'DM Sans',sans-serif;
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+}
+.lang-pill .lang-native{font-size:15px;font-weight:600;color:var(--text);}
+.lang-pill .lang-sub{font-size:10px;color:var(--muted);}
+.lang-pill:hover{border-color:var(--accent);background:rgba(59,158,255,.07);}
+.lang-pill.active{
+  border-color:var(--accent2);background:rgba(0,229,192,.1);
+  color:var(--accent2);
+}
+.lang-pill.active .lang-native{color:var(--accent2);}
+.lang-pill.active .lang-sub{color:rgba(0,229,192,.6);}
 </style>
 </head>
 <body>
@@ -337,8 +362,27 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
     </div>
   </div>
 
-  <p style="margin-top:32px;font-size:11px;color:var(--muted);text-align:center;padding:0 24px;">
-    ⚕️ For educational & informational purposes only. Always consult a licensed physician for medical decisions.
+  <!-- LANGUAGE SELECTOR -->
+  <div class="lang-selector">
+    <span class="lang-selector-label">Choose consultation language</span>
+    <div class="lang-pills">
+      <button class="lang-pill active" id="lang-en" onclick="setLang('english')">
+        <span class="lang-native">English</span>
+        <span class="lang-sub">English</span>
+      </button>
+      <button class="lang-pill" id="lang-hi" onclick="setLang('hindi')">
+        <span class="lang-native">हिंदी</span>
+        <span class="lang-sub">Hindi</span>
+      </button>
+      <button class="lang-pill" id="lang-od" onclick="setLang('odia')">
+        <span class="lang-native">ଓଡ଼ିଆ</span>
+        <span class="lang-sub">Odia</span>
+      </button>
+    </div>
+  </div>
+
+  <p style="margin-top:20px;font-size:11px;color:var(--muted);text-align:center;padding:0 24px;">
+    ⚕️ For educational &amp; informational purposes only. Always consult a licensed physician for medical decisions.
   </p>
 </div>
 
@@ -585,6 +629,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 // ─────────────────────────────────────────
 let state = {
   screen: 'landing',
+  language: 'english',
   bodyPart: '',
   isFreeText: false,
   freeTextDesc: '',
@@ -615,6 +660,21 @@ function goTo(id) {
 }
 function goToSelector() { goTo('selector'); }
 function goToFreeText()  { goTo('freetext'); }
+
+// ─────────────────────────────────────────
+//  LANGUAGE
+// ─────────────────────────────────────────
+const LANG_META = {
+  english: { id: 'lang-en', instruction: 'Always respond in English only. Use English script.' },
+  hindi:   { id: 'lang-hi', instruction: 'Always respond in Hindi using Devanagari script (हिंदी में जवाब दें). If the user writes in Roman/Hinglish (e.g. "mujhe sar dard hai"), understand it and still reply in proper Hindi Devanagari script.' },
+  odia:    { id: 'lang-od', instruction: 'Always respond in Odia using Odia script (ଓଡ଼ିଆରେ ଉତ୍ତର ଦିଅ). If the user writes in Roman script (e.g. "mora matha byatha"), understand it and still reply in proper Odia script.' },
+};
+
+function setLang(lang) {
+  state.language = lang;
+  Object.values(LANG_META).forEach(m => document.getElementById(m.id)?.classList.remove('active'));
+  document.getElementById(LANG_META[lang].id)?.classList.add('active');
+}
 
 // ─────────────────────────────────────────
 //  BODY PART SELECTION
@@ -706,7 +766,7 @@ Respond ONLY with valid JSON, no other text:
     const res = await fetch('/api/question', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: systemPrompt }),
+      body: JSON.stringify({ prompt: systemPrompt, language: state.language }),
     });
     const data = await res.json();
     showMCQLoading(false);
@@ -941,7 +1001,7 @@ async function callAI() {
     const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ bodyPart: state.bodyPart, history: state.conversationHistory }),
+      body: JSON.stringify({ bodyPart: state.bodyPart, history: state.conversationHistory, language: state.language }),
     });
     const data = await res.json();
     thinking.remove();
