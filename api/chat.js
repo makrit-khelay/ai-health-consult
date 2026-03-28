@@ -1,21 +1,35 @@
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const { bodyPart, history } = req.body;
+  const { bodyPart, history, language = "english" } = req.body;
 
   // Extract severity from the structured prompt the frontend sends
   const firstMsg = history?.[0]?.content || "";
   const sevMatch = firstMsg.match(/Pain severity:\s*(\d+)\/10/);
   const severity = sevMatch ? parseInt(sevMatch[1]) : 5;
   const isEmergency = severity >= 9;
-  const isSevere   = severity >= 7;
-  const isMild     = severity <= 3;
+  const isSevere    = severity >= 7;
+  const isMild      = severity <= 3;
+
+  const langInstructions = {
+    english: `Always respond in English only.`,
+    hindi:   `CRITICAL LANGUAGE RULE: Always respond entirely in Hindi using Devanagari script (हिंदी). 
+- All section headers, all explanations, all remedies, all advice must be in Hindi Devanagari.
+- If the user wrote anything in Roman/Hinglish (e.g. "mujhe dard hai"), understand it but reply in proper Hindi Devanagari.
+- Do NOT mix English words into your response except for medical terms that have no Hindi equivalent, and even then write them in Devanagari transliteration.`,
+    odia:    `CRITICAL LANGUAGE RULE: Always respond entirely in Odia using Odia script (ଓଡ଼ିଆ).
+- All section headers, all explanations, all remedies, all advice must be in Odia script.
+- If the user wrote anything in Roman script (e.g. "mora matha byatha"), understand it but reply in proper Odia script.
+- Do NOT mix English words into your response except unavoidable medical terms, and even then write them in Odia transliteration.`,
+  };
+
+  const langRule = langInstructions[language] || langInstructions.english;
 
   const system = `You are MediSense, a highly knowledgeable and compassionate AI health assistant.
 
-LANGUAGE RULE: Always detect and match the user's language (English, Hindi, Hinglish, Bengali, etc.).
+${langRule}
 
-STRICT TOPIC RULE: Only discuss health, symptoms, pain, wellness, and medical guidance. Politely refuse anything off-topic.
+STRICT TOPIC RULE: Only discuss health, symptoms, pain, wellness, and medical guidance. Politely refuse anything off-topic — in the chosen language.
 
 SEVERITY CONTEXT: The patient's pain severity is ${severity}/10 — classified as ${isEmergency ? 'CRITICAL/EMERGENCY' : isSevere ? 'SEVERE' : isMild ? 'MILD' : 'MODERATE'}.
 
@@ -37,7 +51,7 @@ ${isEmergency || isSevere
 
 FORMATTING: Use simple HTML — <b> for bold, <br/> for line breaks. Be thorough, warm, and clear.
 NEVER prescribe specific medications or dosages. Natural remedies and general lifestyle advice only.
-Always end by inviting follow-up questions.`;
+Always end by inviting follow-up questions — in the chosen language.`;
 
   try {
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -58,10 +72,7 @@ Always end by inviting follow-up questions.`;
     });
 
     const data = await response.json();
-
-    if (!response.ok) {
-      return res.status(500).json({ error: data.error?.message || "Groq API error" });
-    }
+    if (!response.ok) return res.status(500).json({ error: data.error?.message || "Groq API error" });
 
     res.status(200).json({ reply: data.choices[0].message.content });
 
